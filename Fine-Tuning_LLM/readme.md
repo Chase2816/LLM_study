@@ -1,0 +1,16 @@
+SFT
+RLHF_Reward
+RLHF_PPO
+RLHF_DPO
+RLHF_ORPO
+Lora
+Lora_inf
+QLora
+IA3
+test_001
+test02
+Test
+svd
+finetune01-BitFit
+finetune02-PromptTunning
+finetune03-PTunning
