@@ -1,16 +1,78 @@
-SFT
-RLHF_Reward
-RLHF_PPO
-RLHF_DPO
-RLHF_ORPO
-Lora
-Lora_inf
-QLora
-IA3
-test_001
-test02
-Test
-svd
-finetune01-BitFit
-finetune02-PromptTunning
-finetune03-PTunning
+# 模型量化的好处
+
+把Float类型(FP32,FP16)的模型参数和激活值，用整数(Int8,Int4)来代替，同时尽可能减少量化后模型推理的误差。
+
+好处：
+1. 减少模型的存储空间和显存的占用
+2. 减少显存和Tensorcore之间的数据传输量，从而加快模型推理时间
+3. 显卡对整数运算速度快于浮点型数据，从而加快模型推理时间
+
+tensor core：INT8,FP16 对矩阵运算提供优化
+cuda core: FP32,FP64
+
+动态量化
+1.将训练好的模型权重量化为int8，并保存量化参数
+2.在模型推理时，对每一层输入的fp32激活值，动态进行进行量化为int8
+3.在每一层对量化后的int8权重和int8激活值进行计算。
+4.在每一层输出时将结果反量化为fp32
+5.将fp32激活值传入到下一层
+
+静态量化
+1.将训练好的模型权重量化为int8,并保存量化参数。
+2.校准(calibration):利用一些有代表性的数据进行模型推理,用这些数据在神经网络每一层产生的激活估算
+出激活值的量化参数。这样就不用推理时每次根据实际激活值计算量化参数。
+3.在每一层对量化后的int8权重和int8激活值进行计算
+4.在每一层输出时将结果反量化为f32,同时根据校准产生的激活值量化参数,把激活值量化为int8,把量
+化参数放入量化后的激活值中。
+5.将Int8的激活值和它的量化参数传入到下一层。
+
+量化感知训练
+1.加载fp32的模型参数。
+2.输入fp32的激活值。
+3.通过在网络里插入模拟量化节点(fake_quantization)来分别对模型参数和激活值进行量化和反
+量化。从而引入量化误差。
+4.模型在fp32精度下进行计算。
+5.计算后的激活值传入下一层。
+
+双重量化
+· 分块量化带来的问题
+· 64^4bit = 256 bit
+·1个32位的scale
+·额外占用:32/256=12.5%
+·解决办法:双重量化
+·每256个分块的scale值进行一次8bit量化。
+·额外占用从12.5%降低到3.174%
+· 双重量化减少了显存占用,但是反量化时要进行两次反量化,先对scale值进行反量化,然后
+对tensor值进行反量化。
+
+分页器优化
+    当显存不足时，将优化器的参数转移到CPU内存上，在需要时再将其取回，防止显存峰值时OOM
+
+
+大模型训练3个阶段
+
+·预训练(Pretrain)
+·使用大量的数据进行初始训练,让模型有续写能力,让模型具备常识。
+· 对数据质量要求不高,但对数据量、算力要求高(数据量1T-20T个Token)
+· 采用无监督学习
+
+·指令遵循训练(SFT)
+· 使用指令模板进行训练,让模型有遵从指令回答问题的能力。
+· 对数据质量要求高,对数据量、算力要求不高(通常在几万到几百万条数据)
+· 采用监督学习
+
+· 对齐训练(HFRL:人类反馈强化学习)
+·使用正负样本进行训练,让模型遵从价值观对齐、风格对齐
+· 对数据质量要求高,对数据量、算力要求不高
+· 采用PPO、DPO等奖励模型进行训练
+
+
+PEFT：高效微调
+trl：微调
+
+下载数据集
+huggingface-cli download --repo-type dataset --resume-download Dahoas/rm-static --local-dir ./data
+huggingface-cli download --repo-type dataset --resume-download wenbopan/Chinese-dpo-pairs --local-dir ./wenbopan
+
+下载模型
+huggingface-cli download --resume-download <repo/name> --local-dir <path/to/local/dir>
