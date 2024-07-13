@@ -1,0 +1,96 @@
+*安装过程.txt -记事本
+文件(F) 编辑(E) 格式(O) 查看(V) 帮助(H)
+1.新建启动容器:
+sudo docker run -it --gpus=all -v /root:/media/ai/disk3t/study_llm -p 60012:22 -p 60013:60013 -p 60014:60014 -p 60015:60015 --name study_llm nvidia/cuda:11.8.0-devel-ubuntu22.04
+
+sudo docker run -it --shm-size=10g --gpus=all -v /root:/media/ai/disk3t/study_llm -p 60012:22 -p 60013:60013 -p 60014:60014 -p 60015:60015 --name study_llm nvidia/cuda:11.8.0-devel-ubuntu22.04
+
+2.更新包
+apt update
+apt install vim openssh-server net-tools curl openssl git
+
+3.修改root密码和语言:
+passwd
+
+修改语言支持
+cd
+vim.bashrc
+export LANG=C.UTF-8
+export LC_ALL=C.UTF-8
+source ./bashrc
+
+docker exec -it study_llm /bin/bash
+netstat -tulnp
+
+4.修改ssh配置
+vim /etc/ssh/sshd_config
+修改#PermitRootLogin prohibit-password 为 PermitRootLogin yes
+
+5.退出容器并重启容器和SSHD:
+exit
+sudo docker exec -d study_llm /etc/init.d/ssh start -D
+
+6.用XShell工具登录docker环境中 
+
+7.安装miniconda
+https://mirrors.tuna.tsinghua.edu.cn/help/anaconda/
+wget https://mirrors.tuna.tsinghua.edu.cn/anaconda/miniconda/Miniconda3-py312_24.4.0-0-Linux-x86_64.sh
+sh Miniconda3-py312_24.4.0-0-Linux-x86_64.sh
+source ~/.bashrc
+
+
+# >>> conda initialize >>>
+# !! Contents within this block are managed by 'conda init' !!
+__conda_setup="$('/root/miniconda3/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+if [ $? -eq 0 ]; then
+	eval "$__conda_setup"
+else
+	if [ -f "/root/miniconda3/otc/profile.d/conda.sh" ]; then
+		. "/root/miniconda3/etc/profile.d/conda.sh"
+	else
+		export PATH="/root/miniconda3/bin:$PATH"
+	fi
+fi
+unset __conda_setup
+# <<< conda initialize <<<
+
+8.创建3.10虚拟环境
+conda create --name py310 python=3.10
+conda activate py310
+
+9.更新清华源
+python -m pip install --upgrade pip
+pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+
+10.安装pytorch
+pip3 install torch torchvision torchaudio -- index-url https://download.pytorch.org/whl/cu118
+
+11.安装transformers和配置国内镜像
+pip install transformers
+pip install gradio
+
+
+huggingface配置镜像
+https://www.cnblogs.com/qcy-blog/p/18165717
+
+hf-mirror.com的包如何下载
+pip install -U huggingface_hub
+设置环境变量以使用镜像站：
+export HF_ENDPOINT=https://hf-mirror.com
+export HF_HOME = "usr/local/"
+对于 Windows Powershell，使用：
+$env:HF_ENDPOINT = "https://hf-mirror.com"
+$env:HF_HOME = "D:\\cache"
+使用 huggingface-cli 下载模型：
+模型名字自己随便搜一个，然后点这个复制
+huggingface-cli download --resume-download xiaolxl/GuoFeng4_XL 
+
+qwen2 完整问答
+{{ if.System }}<|im_start|>system
+{{ .System }}<|im_end|>
+{{ end }}{{ if.Prompt }}<|im_start|>user
+{{ .Prompt }}<|im_end>
+{{ end }}<|im_start|>assistant
+{{ .Response }}<|im_end>
+
+<|im_start|>system你是一个机器人<|im_end|><|im_satart|>user今天天气怎么样？<|im_end|>assistant今天天气很好<|im_end|>
